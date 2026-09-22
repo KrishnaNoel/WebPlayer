@@ -100,7 +100,7 @@
   }
   #virtualCursor.active { display: block; }
 
-  /* Desktop Shortcuts for Minimized Windows */
+  /* Desktop Shortcuts Container */
   .desktop-icons-container {
     position: fixed; top: 20px; left: 20px;
     display: flex; flex-direction: column; gap: 14px;
@@ -108,12 +108,11 @@
   }
 
   .desktop-shortcut {
-    display: none; flex-direction: column; align-items: center; gap: 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
     cursor: pointer; background: rgba(0,0,0,0.55); padding: 10px; border-radius: 10px;
     border: 1px solid var(--glass-border); backdrop-filter: blur(10px);
     width: 90px; text-align: center;
   }
-  .desktop-shortcut.visible { display: flex; }
   .desktop-shortcut img { width: 38px; height: 38px; }
   .desktop-shortcut span { font-size: 0.7rem; font-weight: 700; color: #fff; text-shadow: 0 1px 3px #000; }
 
@@ -253,13 +252,6 @@
     color: var(--accent-2); font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 0.85rem;
   }
 
-  /* Matrix Rain Visualizer Canvas Container */
-  .matrix-container {
-    width: 100%; height: 130px; background: #000; border-radius: 8px;
-    border: 1px solid #00ff00; overflow: hidden; position: relative;
-  }
-  #matrixCanvas { width: 100%; height: 100%; display: block; }
-
   /* Dock Pad Styling */
   .dock-wrapper {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
@@ -315,7 +307,7 @@
   <polygon points="0,0 0,18 4,14 8,22 11,20 7,12 13,12" fill="#00f2fe" stroke="#ffffff" stroke-width="1.5"/>
 </svg>
 
-<!-- Desktop Icon Shortcuts (Shown when windows are minimized) -->
+<!-- Desktop Icon Shortcuts -->
 <div class="desktop-icons-container">
   <div class="desktop-shortcut" id="shortcutPlayer">
     <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300f2fe'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10-4.48 10-10S17.52 2 12 2z'/></svg>" alt="Player">
@@ -389,7 +381,6 @@
     <div class="tab-row">
       <button class="tab-btn active" id="tabPlaylistBtn">Playlist</button>
       <button class="tab-btn" id="tabQueueBtn">Play Next Queue</button>
-      <button class="tab-btn" id="tabMatrixBtn">Matrix Rain</button>
     </div>
 
     <div class="tab-content active" id="tabPlaylist">
@@ -399,26 +390,24 @@
     <div class="tab-content" id="tabQueue">
       <div class="playlist" id="queueList"></div>
     </div>
-
-    <div class="tab-content" id="tabMatrix">
-      <div class="matrix-container">
-        <canvas id="matrixCanvas"></canvas>
-      </div>
-    </div>
   </main>
 </div>
 
-<!-- Secondary Matrix Standalone Window -->
-<div class="win-explorer minimized" id="winMatrixExplorer" style="width: 340px; top: 100px; left: 10%;">
+<!-- Standalone Desktop Matrix App Window -->
+<div class="win-explorer minimized" id="winMatrixExplorer" style="width: 360px; height: 280px; top: 120px; left: calc(50% - 180px);">
+  <div class="resize-handle resize-r"></div>
+  <div class="resize-handle resize-b"></div>
+  <div class="resize-handle resize-br"></div>
+
   <div class="win-titlebar" id="winMatrixTitlebar">
-    <div class="win-title"><span>💻</span> Matrix_Code.exe</div>
+    <div class="win-title"><span>💻</span> Matrix_Rain.exe</div>
     <div class="win-controls">
       <button class="win-btn" id="winMatrixMinBtn">_</button>
       <button class="win-btn" id="winMatrixMaxBtn">□</button>
       <button class="win-btn" id="winMatrixCloseBtn">×</button>
     </div>
   </div>
-  <div style="padding: 10px; background: #000; height: 260px;">
+  <div style="padding: 10px; background: #000; height: calc(100% - 32px); width: 100%;">
     <canvas id="matrixStandaloneCanvas" style="width:100%; height:100%; display:block;"></canvas>
   </div>
 </div>
@@ -493,7 +482,6 @@
   let currentTrackId = playlist[0].id;
   let isPlaying = false;
   let vinylAngle = 0;
-  let sleepTimeout = null;
 
   let synthInterval = null;
   let synthTimeouts = [];
@@ -522,10 +510,6 @@
     winMatrixMaxBtn: document.getElementById('winMatrixMaxBtn'),
     winMatrixCloseBtn: document.getElementById('winMatrixCloseBtn'),
 
-    winResizeR: document.getElementById('winResizeR'),
-    winResizeB: document.getElementById('winResizeB'),
-    winResizeBR: document.getElementById('winResizeBR'),
-    deviceContainer: document.getElementById('deviceContainer'),
     dockWrapper: document.getElementById('dockWrapper'),
     toggleDockBtn: document.getElementById('toggleDockBtn'),
     toggleDockIcon: document.getElementById('toggleDockIcon'),
@@ -537,7 +521,6 @@
     lcdTicker: document.getElementById('lcdTicker'),
     statusBadge: document.getElementById('statusBadge'),
     repeatBadge: document.getElementById('repeatBadge'),
-    timerBadge: document.getElementById('timerBadge'),
     currentTime: document.getElementById('currentTime'),
     totalDuration: document.getElementById('totalDuration'),
     progressBar: document.getElementById('progressBar'),
@@ -550,30 +533,18 @@
     queueList: document.getElementById('queueList'),
     tabPlaylistBtn: document.getElementById('tabPlaylistBtn'),
     tabQueueBtn: document.getElementById('tabQueueBtn'),
-    tabMatrixBtn: document.getElementById('tabMatrixBtn'),
     tabPlaylist: document.getElementById('tabPlaylist'),
     tabQueue: document.getElementById('tabQueue'),
-    tabMatrix: document.getElementById('tabMatrix'),
     uploadBtn: document.getElementById('uploadBtn'),
     fileInput: document.getElementById('fileInput'),
-    bgUploadBtn: document.getElementById('bgUploadBtn'),
-    bgInput: document.getElementById('bgInput'),
-    exportBtn: document.getElementById('exportBtn'),
-    importBtn: document.getElementById('importBtn'),
-    importFileInput: document.getElementById('importFileInput'),
     settingsBtn: document.getElementById('settingsBtn'),
     closeSettingsBtn: document.getElementById('closeSettingsBtn'),
     modalOverlay: document.getElementById('modalOverlay'),
-    timerSelect: document.getElementById('timerSelect'),
-    themeSelect: document.getElementById('themeSelect'),
-    customThemeOption: document.getElementById('customThemeOption'),
-    crtToggle: document.getElementById('crtToggle'),
     viz: document.getElementById('viz'),
-    matrixCanvas: document.getElementById('matrixCanvas'),
     matrixStandaloneCanvas: document.getElementById('matrixStandaloneCanvas')
   };
 
-  // Toggle Dock Visibility
+  // Toggle Dock
   let isDockCollapsed = false;
   els.toggleDockBtn.addEventListener('click', () => {
     isDockCollapsed = !isDockCollapsed;
@@ -581,7 +552,7 @@
     els.toggleDockIcon.textContent = isDockCollapsed ? '▲' : '▼';
   });
 
-  // Trackpad Touch Handler with Clicking / Dragging capability for Mobile
+  // Trackpad Touch Handler with Clicking for Mobile
   let padStartX = 0, padStartY = 0;
   let cursorX = window.innerWidth / 2;
   let cursorY = window.innerHeight / 2;
@@ -609,17 +580,14 @@
   }, {passive: true});
 
   els.touchPad.addEventListener('touchend', () => {
-    // Perform simulated Click at Virtual Cursor location if user quick-tapped pad
     if (Date.now() - tapStartTime < 250) {
       const clickedEl = document.elementFromPoint(cursorX, cursorY);
-      if (clickedEl) {
-        clickedEl.click();
-      }
+      if (clickedEl) clickedEl.click();
     }
     setTimeout(() => els.virtualCursor.classList.remove('active'), 2000);
   });
 
-  // Resizable & Draggable Windows setup
+  // Draggable Windows
   function makeWindowInteractive(winEl, titlebarEl) {
     let isDragging = false, dragOffsetX = 0, dragOffsetY = 0;
 
@@ -660,38 +628,31 @@
 
   // Minimize / Maximize Window Controls
   function setupWindowActions(winEl, minBtn, maxBtn, closeBtn, shortcutEl) {
-    minBtn.addEventListener('click', () => {
-      winEl.classList.add('minimized');
-      shortcutEl.classList.add('visible');
-    });
-    closeBtn.addEventListener('click', () => {
-      winEl.classList.add('minimized');
-      shortcutEl.classList.add('visible');
-    });
-    maxBtn.addEventListener('click', () => {
-      winEl.classList.toggle('maximized');
-    });
-    shortcutEl.addEventListener('click', () => {
-      winEl.classList.remove('minimized');
-      shortcutEl.classList.remove('visible');
-    });
+    minBtn.addEventListener('click', () => winEl.classList.add('minimized'));
+    closeBtn.addEventListener('click', () => winEl.classList.add('minimized'));
+    maxBtn.addEventListener('click', () => winEl.classList.toggle('maximized'));
+    shortcutEl.addEventListener('click', () => winEl.classList.remove('minimized'));
   }
 
   setupWindowActions(els.winExplorer, els.winMinBtn, els.winMaxBtn, els.winCloseBtn, els.shortcutPlayer);
   setupWindowActions(els.winMatrixExplorer, els.winMatrixMinBtn, els.winMatrixMaxBtn, els.winMatrixCloseBtn, els.shortcutMatrix);
 
-  // Matrix Rain Renderer
+  // Standalone Matrix Desktop App Engine
   function initMatrixEffect(canvas) {
     const ctx = canvas.getContext('2d');
     let width = canvas.width = canvas.parentElement.clientWidth || 300;
     let height = canvas.height = canvas.parentElement.clientHeight || 150;
 
     const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*';
-    const fontSize = 10;
+    const fontSize = 11;
     const columns = Math.floor(width / fontSize);
     const drops = Array(columns).fill(1);
 
     function draw() {
+      if (canvas.width !== canvas.parentElement.clientWidth || canvas.height !== canvas.parentElement.clientHeight) {
+        width = canvas.width = canvas.parentElement.clientWidth;
+        height = canvas.height = canvas.parentElement.clientHeight;
+      }
       ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
       ctx.fillRect(0, 0, width, height);
 
@@ -711,10 +672,9 @@
     setInterval(draw, 33);
   }
 
-  initMatrixEffect(els.matrixCanvas);
   initMatrixEffect(els.matrixStandaloneCanvas);
 
-  // Audio Playback Engine
+  // Audio Functions
   function formatTime(secs) {
     if(isNaN(secs)) return "00:00";
     const m = Math.floor(secs / 60);
@@ -732,20 +692,6 @@
   });
 
   htmlAudio.addEventListener('ended', () => playNextTrack());
-
-  els.progressBar.addEventListener('click', (e) => {
-    const track = getCurrentTrack();
-    const rect = els.progressBar.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-
-    if(track.url && htmlAudio.duration) {
-      htmlAudio.currentTime = pct * htmlAudio.duration;
-    } else {
-      synthCurrentTime = pct * synthDuration;
-      els.progressFill.style.width = `${pct * 100}%`;
-      els.currentTime.textContent = formatTime(synthCurrentTime);
-    }
-  });
 
   function ensureAudioContext() {
     if(!audioCtx) {
@@ -887,39 +833,12 @@
     updateUI();
   });
 
-  function updateVinylArt(track) {
-    if(track.cover) {
-      els.vinylArt.src = track.cover;
-      els.vinylArt.classList.add('active');
-      els.vinylText.style.display = 'none';
-    } else {
-      els.vinylArt.classList.remove('active');
-      els.vinylText.style.display = 'block';
-      els.vinylText.textContent = track.name.substring(0, 8).toUpperCase();
-    }
-  }
-
   function updateUI() {
     const track = getCurrentTrack();
     els.statusBadge.textContent = isPlaying ? "PLAYING" : "PAUSED";
     els.playBtn.textContent = isPlaying ? "⏸" : "▶";
     
-    if (repeatMode === 0) {
-      els.repeatBtn.textContent = "🔁";
-      els.repeatBtn.classList.remove('active');
-      els.repeatBadge.textContent = "REP: OFF";
-    } else if (repeatMode === 1) {
-      els.repeatBtn.textContent = "🔂";
-      els.repeatBtn.classList.add('active');
-      els.repeatBadge.textContent = "REP: ONE";
-    } else if (repeatMode === 2) {
-      els.repeatBtn.textContent = "🔁";
-      els.repeatBtn.classList.add('active');
-      els.repeatBadge.textContent = "REP: ALL";
-    }
-
     els.lcdTicker.textContent = `*** NOW PLAYING: ${track.name} — ${track.genre} *** ${track.lyrics || ''}`;
-    updateVinylArt(track);
     renderPlaylist();
     renderQueue();
   }
@@ -949,7 +868,7 @@
 
   function renderQueue() {
     els.queueList.innerHTML = queue.length === 0 ? '<div style="font-size:0.75rem; color:var(--text-lo); padding:6px;">Queue is empty</div>' : '';
-    queue.forEach((track, index) => {
+    queue.forEach((track) => {
       const card = document.createElement('div');
       card.className = 'track-card';
       card.innerHTML = `<span style="font-size:0.7rem;">☰</span> <div class="track-card-meta"><div class="track-card-name">${track.name}</div></div>`;
@@ -957,24 +876,19 @@
     });
   }
 
-  // Settings & Navigation Tabs
+  // Navigation Tabs
   els.tabPlaylistBtn.addEventListener('click', () => {
-    els.tabPlaylistBtn.classList.add('active'); els.tabQueueBtn.classList.remove('active'); els.tabMatrixBtn.classList.remove('active');
-    els.tabPlaylist.classList.add('active'); els.tabQueue.classList.remove('active'); els.tabMatrix.classList.remove('active');
+    els.tabPlaylistBtn.classList.add('active'); els.tabQueueBtn.classList.remove('active');
+    els.tabPlaylist.classList.add('active'); els.tabQueue.classList.remove('active');
   });
   els.tabQueueBtn.addEventListener('click', () => {
-    els.tabQueueBtn.classList.add('active'); els.tabPlaylistBtn.classList.remove('active'); els.tabMatrixBtn.classList.remove('active');
-    els.tabQueue.classList.add('active'); els.tabPlaylist.classList.remove('active'); els.tabMatrix.classList.remove('active');
-  });
-  els.tabMatrixBtn.addEventListener('click', () => {
-    els.tabMatrixBtn.classList.add('active'); els.tabPlaylistBtn.classList.remove('active'); els.tabQueueBtn.classList.remove('active');
-    els.tabMatrix.classList.add('active'); els.tabPlaylist.classList.remove('active'); els.tabQueue.classList.remove('active');
+    els.tabQueueBtn.classList.add('active'); els.tabPlaylistBtn.classList.remove('active');
+    els.tabQueue.classList.add('active'); els.tabPlaylist.classList.remove('active');
   });
 
   els.settingsBtn.addEventListener('click', () => els.modalOverlay.classList.add('open'));
   els.closeSettingsBtn.addEventListener('click', () => els.modalOverlay.classList.remove('open'));
 
-  // File Uploads & Controls
   els.uploadBtn.addEventListener('click', () => els.fileInput.click());
   els.fileInput.addEventListener('change', (e) => {
     const files = Array.from(e.target.files || []);
@@ -999,7 +913,7 @@
     playTrackWithCrossfade(playlist[prevIdx].id);
   });
 
-  // Main Animation Loop
+  // Animation Loop
   function animateFrame() {
     if(isPlaying) {
       vinylAngle = (vinylAngle + 1.5) % 360;
