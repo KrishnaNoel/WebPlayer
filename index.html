@@ -74,12 +74,22 @@
     transition: background 0.5s ease, color 0.3s ease;
   }
 
-  body.crt-mode::before {
+  body.crt-mode::before, body.glitch-active::before {
     content: ""; position: fixed; inset: 0;
     background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
                 linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
     background-size: 100% 3px, 6px 100%;
     pointer-events: none; z-index: 999;
+  }
+
+  body.glitch-active {
+    animation: y2kGlitch 0.15s infinite alternate;
+  }
+
+  @keyframes y2kGlitch {
+    0% { filter: invert(0) hue-rotate(0deg); transform: translate(0, 0); }
+    50% { filter: invert(0.2) hue-rotate(90deg); transform: translate(-2px, 2px); }
+    100% { filter: invert(0) hue-rotate(180deg); transform: translate(2px, -2px); }
   }
 
   .stars {
@@ -122,7 +132,7 @@
     top: 15px; left: 50%;
     transform: translateX(-50%);
     width: clamp(320px, 92vw, 480px);
-    min-width: 300px; min-height: 400px;
+    min-width: 300px; min-height: 200px;
     background: linear-gradient(180deg, #bec8d8 0%, #a0abbc 100%);
     border: 2px solid #ffffff;
     border-right-color: #404856; border-bottom-color: #404856;
@@ -252,6 +262,21 @@
     color: var(--accent-2); font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 0.85rem;
   }
 
+  /* Y2K Bug Clock App Styling */
+  .clock-container {
+    background: #080f08; padding: 12px; border: 2px solid #2d4a2d;
+    height: calc(100% - 32px); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-family: 'VT323', monospace; color: #33ff33;
+  }
+  .clock-digits { font-size: 1.8rem; letter-spacing: 2px; text-shadow: 0 0 8px #33ff33; }
+  .clock-label { font-size: 0.75rem; color: #1a881a; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .glitch-btn {
+    margin-top: 10px; background: #1a331a; border: 1px solid #33ff33;
+    color: #33ff33; font-family: 'VT323', monospace; font-size: 0.9rem;
+    padding: 2px 8px; border-radius: 4px; cursor: pointer;
+  }
+  .glitch-btn:active { background: #33ff33; color: #000; }
+
   /* Dock Pad Styling */
   .dock-wrapper {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
@@ -316,6 +341,10 @@
   <div class="desktop-shortcut" id="shortcutMatrix">
     <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300ff00'><path d='M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z'/></svg>" alt="Matrix Rain">
     <span>Matrix_Rain.exe</span>
+  </div>
+  <div class="desktop-shortcut" id="shortcutClock">
+    <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c6ff3d'><path d='M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z'/></svg>" alt="Y2K Bug Clock">
+    <span>Y2K_Clock.exe</span>
   </div>
 </div>
 
@@ -409,6 +438,27 @@
   </div>
   <div style="padding: 10px; background: #000; height: calc(100% - 32px); width: 100%;">
     <canvas id="matrixStandaloneCanvas" style="width:100%; height:100%; display:block;"></canvas>
+  </div>
+</div>
+
+<!-- Standalone Y2K Bug Clock App Window -->
+<div class="win-explorer minimized" id="winClockExplorer" style="width: 280px; height: 180px; top: 200px; left: calc(50% - 140px);">
+  <div class="resize-handle resize-r"></div>
+  <div class="resize-handle resize-b"></div>
+  <div class="resize-handle resize-br"></div>
+
+  <div class="win-titlebar" id="winClockTitlebar">
+    <div class="win-title"><span>⏰</span> Y2K_Clock.exe</div>
+    <div class="win-controls">
+      <button class="win-btn" id="winClockMinBtn">_</button>
+      <button class="win-btn" id="winClockMaxBtn">□</button>
+      <button class="win-btn" id="winClockCloseBtn">×</button>
+    </div>
+  </div>
+  <div class="clock-container">
+    <div class="clock-digits" id="clockDisplay">00d 00h 00m 00s</div>
+    <div class="clock-label">Time Since Y2K Bug Panic (Jan 1, 2000)</div>
+    <button class="glitch-btn" id="triggerGlitchBtn">Simulate Glitch ⚡</button>
   </div>
 </div>
 
@@ -510,6 +560,15 @@
     winMatrixMaxBtn: document.getElementById('winMatrixMaxBtn'),
     winMatrixCloseBtn: document.getElementById('winMatrixCloseBtn'),
 
+    winClockExplorer: document.getElementById('winClockExplorer'),
+    winClockTitlebar: document.getElementById('winClockTitlebar'),
+    shortcutClock: document.getElementById('shortcutClock'),
+    winClockMinBtn: document.getElementById('winClockMinBtn'),
+    winClockMaxBtn: document.getElementById('winClockMaxBtn'),
+    winClockCloseBtn: document.getElementById('winClockCloseBtn'),
+    clockDisplay: document.getElementById('clockDisplay'),
+    triggerGlitchBtn: document.getElementById('triggerGlitchBtn'),
+
     dockWrapper: document.getElementById('dockWrapper'),
     toggleDockBtn: document.getElementById('toggleDockBtn'),
     toggleDockIcon: document.getElementById('toggleDockIcon'),
@@ -552,7 +611,7 @@
     els.toggleDockIcon.textContent = isDockCollapsed ? '▲' : '▼';
   });
 
-  // Trackpad Touch Handler with Clicking for Mobile
+  // Trackpad Touch Handler
   let padStartX = 0, padStartY = 0;
   let cursorX = window.innerWidth / 2;
   let cursorY = window.innerHeight / 2;
@@ -587,7 +646,7 @@
     setTimeout(() => els.virtualCursor.classList.remove('active'), 2000);
   });
 
-  // Draggable Windows
+  // Draggable Windows Logic
   function makeWindowInteractive(winEl, titlebarEl) {
     let isDragging = false, dragOffsetX = 0, dragOffsetY = 0;
 
@@ -625,8 +684,9 @@
 
   makeWindowInteractive(els.winExplorer, els.winTitlebar);
   makeWindowInteractive(els.winMatrixExplorer, els.winMatrixTitlebar);
+  makeWindowInteractive(els.winClockExplorer, els.winClockTitlebar);
 
-  // Minimize / Maximize Window Controls
+  // Window Controls Setup
   function setupWindowActions(winEl, minBtn, maxBtn, closeBtn, shortcutEl) {
     minBtn.addEventListener('click', () => winEl.classList.add('minimized'));
     closeBtn.addEventListener('click', () => winEl.classList.add('minimized'));
@@ -636,6 +696,26 @@
 
   setupWindowActions(els.winExplorer, els.winMinBtn, els.winMaxBtn, els.winCloseBtn, els.shortcutPlayer);
   setupWindowActions(els.winMatrixExplorer, els.winMatrixMinBtn, els.winMatrixMaxBtn, els.winMatrixCloseBtn, els.shortcutMatrix);
+  setupWindowActions(els.winClockExplorer, els.winClockMinBtn, els.winClockMaxBtn, els.winClockCloseBtn, els.shortcutClock);
+
+  // Y2K Bug Clock Engine (~20 lines)
+  function updateY2KClock() {
+    const y2kDate = new Date('2000-01-01T00:00:00Z');
+    const now = new Date();
+    const diff = now - y2kDate;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const mins = Math.floor((diff / (1000 * 60)) % 60);
+    const secs = Math.floor((diff / 1000) % 60);
+    els.clockDisplay.textContent = `${days}d ${hours < 10 ? '0' : ''}${hours}h ${mins < 10 ? '0' : ''}${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
+  }
+  setInterval(updateY2KClock, 1000);
+  updateY2KClock();
+
+  els.triggerGlitchBtn.addEventListener('click', () => {
+    document.body.classList.add('glitch-active');
+    setTimeout(() => document.body.classList.remove('glitch-active'), 1500);
+  });
 
   // Standalone Matrix Desktop App Engine
   function initMatrixEffect(canvas) {
