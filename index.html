@@ -146,15 +146,35 @@
   .floating-mascot-corner * { pointer-events: auto; }
   .mascot-sprite {
     font-size: 3.5rem; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6)); transition: transform 0.1s ease;
+    cursor: pointer !important;
   }
-  .mascot-sprite.dancing {
+  
+  /* Multiple Dance Animations */
+  .mascot-sprite.dance-0 {
     animation: mascotDance 0.4s infinite alternate ease-in-out;
   }
+  .mascot-sprite.dance-1 {
+    animation: mascotSpin 0.6s infinite linear;
+  }
+  .mascot-sprite.dance-2 {
+    animation: mascotBounce 0.3s infinite alternate ease-in-out;
+  }
+
   @keyframes mascotDance {
     0% { transform: translateY(0) scale(1) rotate(-8deg); }
     50% { transform: translateY(-16px) scale(1.1) rotate(0deg); }
     100% { transform: translateY(0) scale(0.95) rotate(8deg); }
   }
+  @keyframes mascotSpin {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.2); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+  @keyframes mascotBounce {
+    0% { transform: translateY(0) scale(1.2, 0.8); }
+    100% { transform: translateY(-24px) scale(0.8, 1.2); }
+  }
+
   .mascot-speech {
     background: #fff; color: #000; border-radius: 12px; padding: 6px 12px;
     font-size: 0.75rem; font-weight: bold; margin-bottom: 6px; text-align: center;
@@ -239,7 +259,7 @@
 <!-- Permanent Floating Corner Mascot -->
 <div class="floating-mascot-corner">
   <div class="mascot-speech" id="mascotSpeech">Play some music and watch me dance!</div>
-  <div class="mascot-sprite" id="mascotSprite">👾</div>
+  <div class="mascot-sprite" id="mascotSprite" title="Click to change dance style!">👾</div>
 </div>
 
 <div class="win-explorer" id="winExplorer">
@@ -410,6 +430,15 @@
       <button id="closeSettingsBtn" style="background:none; border:none; color:#fff; font-size:1.2rem;">&times;</button>
     </div>
     <div class="setting-row">
+      <label for="petSelect">Desktop Pet Avatar</label>
+      <select id="petSelect" style="background:#000; color:#fff; border:1px solid #555; padding:4px;">
+        <option value="👾">👾 Alien</option>
+        <option value="🐱">🐱 Cat</option>
+        <option value="🤖">🤖 Robot</option>
+        <option value="🐶">🐶 Dog</option>
+      </select>
+    </div>
+    <div class="setting-row">
       <label for="timerSelect">Sleep Timer</label>
       <select id="timerSelect" style="background:#000; color:#fff; border:1px solid #555; padding:4px;">
         <option value="0">Off</option><option value="5">5 Minutes</option><option value="15">15 Minutes</option><option value="30">30 Minutes</option>
@@ -452,6 +481,10 @@
   let vinylAngle = 0;
   let repeatMode = 0;
 
+  // Mascot State
+  let danceStyleIndex = 0;
+  const danceStylesCount = 3;
+
   let synthInterval = null, synthCurrentTime = 0;
   const synthDuration = 30;
   let fadeTimer = null;
@@ -474,9 +507,19 @@
     tabPlaylistBtn: $('tabPlaylistBtn'), tabQueueBtn: $('tabQueueBtn'), tabPlaylist: $('tabPlaylist'), tabQueue: $('tabQueue'),
     viz: $('viz'), dockWrapper: $('dockWrapper'), toggleDockBtn: $('toggleDockBtn'), toggleDockIcon: $('toggleDockIcon'),
     modalOverlay: $('modalOverlay'), timerSelect: $('timerSelect'), themeSelect: $('themeSelect'), crtToggle: $('crtToggle'),
-    clockDisplay: $('clockDisplay'),
+    petSelect: $('petSelect'), clockDisplay: $('clockDisplay'),
     mascotSprite: $('mascotSprite'), mascotSpeech: $('mascotSpeech')
   };
+
+  // ---------- Mood Switcher & Mascot Controls ----------
+  els.petSelect.addEventListener('change', (e) => {
+    els.mascotSprite.textContent = e.target.value;
+  });
+
+  els.mascotSprite.addEventListener('click', () => {
+    danceStyleIndex = (danceStyleIndex + 1) % danceStylesCount;
+    updateUI();
+  });
 
   // ---------- Dock ----------
   let dockCollapsed = false;
@@ -860,12 +903,17 @@
     els.repeatBtn.classList.toggle('active', repeatMode > 0);
     els.lcdTicker.textContent = `*** ${loadedId ? 'NOW PLAYING' : 'SELECTED'}: ${track.name} ${track.artist ? ' - ' + track.artist : ''} (${track.genre}) *** ${track.lyrics || ''}`;
     
+    // Clear all existing dance style classes
+    for (let i = 0; i < danceStylesCount; i++) {
+      els.mascotSprite.classList.remove(`dance-${i}`);
+    }
+
     if (isPlaying) {
-      els.mascotSprite.classList.add('dancing');
-      els.mascotSpeech.textContent = "Jammin' to: " + track.name + "! 🕺🎵";
+      els.mascotSprite.classList.add(`dance-${danceStyleIndex}`);
+      const danceNames = ["Bop", "Spin", "Bounce"];
+      els.mascotSpeech.textContent = `Jammin' (${danceNames[danceStyleIndex]}): ${track.name}! 🕺🎵`;
     } else {
-      els.mascotSprite.classList.remove('dancing');
-      els.mascotSpeech.textContent = "Press Play to make me dance!";
+      els.mascotSpeech.textContent = "Click me to change dance move, or press Play!";
     }
 
     renderPlaylist();
@@ -943,7 +991,7 @@
   els.crtToggle.addEventListener('change', () => applyCrt(els.crtToggle.checked));
 
   $('exportBtn').addEventListener('click', () => {
-    const config = { theme: els.themeSelect.value, crt: els.crtToggle.checked, repeatMode: repeatMode };
+    const config = { theme: els.themeSelect.value, crt: els.crtToggle.checked, repeatMode: repeatMode, pet: els.petSelect.value };
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -965,6 +1013,7 @@
           if (config.theme) applyTheme(config.theme);
           if (typeof config.crt === 'boolean') applyCrt(config.crt);
           if (typeof config.repeatMode === 'number') { repeatMode = config.repeatMode; updateUI(); }
+          if (config.pet) { els.petSelect.value = config.pet; els.mascotSprite.textContent = config.pet; }
         } catch (err) { alert('Invalid JSON settings file.'); }
       };
       reader.readAsText(file);
