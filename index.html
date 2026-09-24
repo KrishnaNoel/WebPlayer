@@ -3,10 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>JukeBox</title>
+<title>Y2K Jukebox </title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=VT323&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<!-- ID3 Tag Parser Library for MP3 Metadata & Cover Art -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+
 <style>
   :root {
     --bg-deep: #181631; --bg-mid: #3b2d54;
@@ -135,25 +138,33 @@
   .track-card-name { font-weight: 700; font-size: 0.8rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .add-btn { background: rgba(255,255,255,0.2); border: 1px solid var(--glass-border); color: var(--accent-2); font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 0.85rem; }
 
-  @container (max-height: 450px) {
-    .top-row { flex-direction: row; align-items: center; gap: 10px; }
-    .turntable { width: 96px; height: 96px; padding: 3px; }
-    .vinyl-label { width: 40px; height: 40px; border-width: 1px; }
-    .vinyl-label-text { font-size: 0.4rem; }
-    .screen { flex: 1; min-width: 0; padding: 5px 7px; }
-    .screen-top { font-size: 0.7rem; gap: 4px; flex-wrap: wrap; }
-    .lcd-ticker-text { font-size: 1rem; }
-    canvas#viz { height: 16px; }
-    .progress-section, .controls-main { margin-top: 6px; }
-    .ctrl-btn { width: 32px; height: 32px; }
-    .ctrl-btn.play { width: 40px; height: 40px; }
-    .tab-row { margin-top: 8px; }
+  /* Floating Desktop Pet Corner Widget */
+  .floating-mascot-corner {
+    position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+    z-index: 1000; display: flex; flex-direction: column; align-items: flex-end; pointer-events: none;
   }
-  .clock-container { background: #080f08; padding: 12px; border: 2px solid #2d4a2d; height: calc(100% - 32px); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'VT323', monospace; color: #33ff33; }
-  .clock-digits { font-size: 1.8rem; letter-spacing: 2px; text-shadow: 0 0 8px #33ff33; }
-  .clock-label { font-size: 0.75rem; color: #1a881a; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
-  .glitch-btn { margin-top: 10px; background: #1a331a; border: 1px solid #33ff33; color: #33ff33; font-family: 'VT323', monospace; font-size: 0.9rem; padding: 2px 8px; border-radius: 4px; }
-  .glitch-btn:active { background: #33ff33; color: #000; }
+  .floating-mascot-corner * { pointer-events: auto; }
+  .mascot-sprite {
+    font-size: 3.5rem; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6)); transition: transform 0.1s ease;
+  }
+  .mascot-sprite.dancing {
+    animation: mascotDance 0.4s infinite alternate ease-in-out;
+  }
+  @keyframes mascotDance {
+    0% { transform: translateY(0) scale(1) rotate(-8deg); }
+    50% { transform: translateY(-16px) scale(1.1) rotate(0deg); }
+    100% { transform: translateY(0) scale(0.95) rotate(8deg); }
+  }
+  .mascot-speech {
+    background: #fff; color: #000; border-radius: 12px; padding: 6px 12px;
+    font-size: 0.75rem; font-weight: bold; margin-bottom: 6px; text-align: center;
+    border: 2px solid var(--accent-2); position: relative; max-width: 180px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .mascot-speech::after {
+    content: ''; position: absolute; bottom: -8px; right: 24px;
+    border-width: 8px 8px 0; border-style: solid; border-color: #fff transparent; display: block; width: 0;
+  }
 
   /* Vintage Audio Rack Styles */
   .eq-rack-container {
@@ -182,6 +193,12 @@
   .eq-knob-container { display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .eq-knob-container label { font-size: 0.65rem; color: #a49bc4; }
   .eq-knob-slider { width: 100%; accent-color: var(--accent-2, #00f2fe); }
+
+  .clock-container { background: #080f08; padding: 12px; border: 2px solid #2d4a2d; height: calc(100% - 32px); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'VT323', monospace; color: #33ff33; }
+  .clock-digits { font-size: 1.8rem; letter-spacing: 2px; text-shadow: 0 0 8px #33ff33; }
+  .clock-label { font-size: 0.75rem; color: #1a881a; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+  .glitch-btn { margin-top: 10px; background: #1a331a; border: 1px solid #33ff33; color: #33ff33; font-family: 'VT323', monospace; font-size: 0.9rem; padding: 2px 8px; border-radius: 4px; }
+  .glitch-btn:active { background: #33ff33; color: #000; }
 
   .dock-wrapper { position: fixed; right: calc(12px + env(safe-area-inset-right, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 1000; display: grid; grid-template-columns: repeat(2, 40px); gap: 6px; padding: 8px; background: linear-gradient(180deg, #2b2542 0%, #151026 100%); border: 2px solid var(--glass-border); border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
   .dock-wrapper.collapsed { grid-template-columns: 40px; padding: 4px; }
@@ -219,6 +236,12 @@
   </div>
 </div>
 
+<!-- Permanent Floating Corner Mascot -->
+<div class="floating-mascot-corner">
+  <div class="mascot-speech" id="mascotSpeech">Play some music and watch me dance!</div>
+  <div class="mascot-sprite" id="mascotSprite">👾</div>
+</div>
+
 <div class="win-explorer" id="winExplorer">
   <div class="resize-handle resize-r"></div>
   <div class="resize-handle resize-b"></div>
@@ -239,7 +262,7 @@
           <div class="vinyl-shine"></div>
           <div class="vinyl-label">
             <img id="vinylArt" class="vinyl-label-art" alt="Cover Art">
-            <span class="vinyl-label-text">Y2K<br>MIX</span>
+            <span class="vinyl-label-text" id="vinylDefaultText">Y2K<br>MIX</span>
           </div>
         </div>
       </div>
@@ -302,13 +325,13 @@
 
     <div class="eq-main-body">
       <div class="eq-slider-bank">
-        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" min="-12" max="12" value="0" step="1"><span>60Hz</span></div>
-        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" min="-12" max="12" value="0" step="1"><span>150Hz</span></div>
-        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" min="-12" max="12" value="0" step="1"><span>400Hz</span></div>
-        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" min="-12" max="12" value="0" step="1"><span>1kHz</span></div>
-        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" min="-12" max="12" value="0" step="1"><span>2.4kHz</span></div>
-        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" min="-12" max="12" value="0" step="1"><span>6kHz</span></div>
-        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" min="-12" max="12" value="0" step="1"><span>15kHz</span></div>
+        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" data-freq="60" min="-12" max="12" value="0" step="1"><span>60Hz</span></div>
+        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" data-freq="150" min="-12" max="12" value="0" step="1"><span>150Hz</span></div>
+        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" data-freq="400" min="-12" max="12" value="0" step="1"><span>400Hz</span></div>
+        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" data-freq="1000" min="-12" max="12" value="0" step="1"><span>1kHz</span></div>
+        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" data-freq="2400" min="-12" max="12" value="0" step="1"><span>2.4kHz</span></div>
+        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" data-freq="6000" min="-12" max="12" value="0" step="1"><span>6kHz</span></div>
+        <div class="eq-channel"><span class="eq-gain-val">+0dB</span><input type="range" class="eq-slider" data-freq="15000" min="-12" max="12" value="0" step="1"><span>15kHz</span></div>
       </div>
 
       <div class="eq-master-section">
@@ -427,26 +450,32 @@
   let loadedId = null;
   let isPlaying = false;
   let vinylAngle = 0;
-  let repeatMode = 0; // 0 off, 1 one, 2 all
+  let repeatMode = 0;
 
   let synthInterval = null, synthCurrentTime = 0;
   const synthDuration = 30;
   let fadeTimer = null;
 
-  let audioCtx = null, masterGain = null, analyser = null, audioSourceNode = null;
+  // Web Audio Context & Nodes
+  let audioCtx = null, masterGain = null, pannerNode = null, analyser = null, audioSourceNode = null;
+  let eqFilters = [];
+  const EQ_FREQS = [60, 150, 400, 1000, 2400, 6000, 15000];
+
   const htmlAudio = new Audio();
   htmlAudio.preload = "metadata";
 
   const $ = id => document.getElementById(id);
   const els = {
-    vinyl: $('vinyl'), lcdTicker: $('lcdTicker'), statusBadge: $('statusBadge'), repeatBadge: $('repeatBadge'), timerBadge: $('timerBadge'),
+    vinyl: $('vinyl'), vinylArt: $('vinylArt'), vinylDefaultText: $('vinylDefaultText'),
+    lcdTicker: $('lcdTicker'), statusBadge: $('statusBadge'), repeatBadge: $('repeatBadge'), timerBadge: $('timerBadge'),
     currentTime: $('currentTime'), totalDuration: $('totalDuration'), progressBar: $('progressBar'), progressFill: $('progressFill'),
     playBtn: $('playBtn'), prevBtn: $('prevBtn'), nextBtn: $('nextBtn'), repeatBtn: $('repeatBtn'),
     playlist: $('playlist'), queueList: $('queueList'),
     tabPlaylistBtn: $('tabPlaylistBtn'), tabQueueBtn: $('tabQueueBtn'), tabPlaylist: $('tabPlaylist'), tabQueue: $('tabQueue'),
     viz: $('viz'), dockWrapper: $('dockWrapper'), toggleDockBtn: $('toggleDockBtn'), toggleDockIcon: $('toggleDockIcon'),
     modalOverlay: $('modalOverlay'), timerSelect: $('timerSelect'), themeSelect: $('themeSelect'), crtToggle: $('crtToggle'),
-    clockDisplay: $('clockDisplay')
+    clockDisplay: $('clockDisplay'),
+    mascotSprite: $('mascotSprite'), mascotSpeech: $('mascotSpeech')
   };
 
   // ---------- Dock ----------
@@ -473,7 +502,6 @@
     win.addEventListener('mousedown', () => bringToFront(win));
     win.addEventListener('touchstart', () => bringToFront(win), { passive: true });
 
-    // drag
     let dragging = false, ox = 0, oy = 0;
     const start = e => {
       if (win.classList.contains('maximized') || e.target.closest('.win-btn')) return;
@@ -489,7 +517,6 @@
     window.addEventListener('mouseup', stop);
     window.addEventListener('touchend', stop);
 
-    // resize
     win.querySelectorAll('.resize-handle').forEach(h => {
       const dir = h.classList.contains('resize-br') ? 'br' : h.classList.contains('resize-r') ? 'r' : 'b';
       const begin = e => {
@@ -512,7 +539,6 @@
       h.addEventListener('touchstart', begin, { passive: true });
     });
 
-    // controls
     minBtn.addEventListener('click', () => win.classList.add('minimized'));
     closeBtn.addEventListener('click', () => win.classList.add('minimized'));
     maxBtn.addEventListener('click', () => win.classList.toggle('maximized'));
@@ -524,58 +550,75 @@
   setupWindow($('winMatrixExplorer'), $('winMatrixTitlebar'), $('winMatrixMinBtn'), $('winMatrixMaxBtn'), $('winMatrixCloseBtn'), $('shortcutMatrix'));
   setupWindow($('winClockExplorer'), $('winClockTitlebar'), $('winClockMinBtn'), $('winClockMaxBtn'), $('winClockCloseBtn'), $('shortcutClock'));
 
-  // ---------- Equalizer Logic ----------
-  (function initEqualizer() {
-    const presets = {
-      flat: [0, 0, 0, 0, 0, 0, 0],
-      pop: [2, 4, 5, 2, -1, 3, 4],
-      techno: [6, 5, 1, -2, 3, 5, 6],
-      rock: [5, 3, -1, -2, 1, 4, 6]
-    };
+  // ---------- Live DSP Equalizer & Audio Controls ----------
+  const presets = {
+    flat: [0, 0, 0, 0, 0, 0, 0],
+    pop: [2, 4, 5, 2, -1, 3, 4],
+    techno: [6, 5, 1, -2, 3, 5, 6],
+    rock: [5, 3, -1, -2, 1, 4, 6]
+  };
 
-    const sliders = document.querySelectorAll('.eq-slider');
-    const gainLabels = document.querySelectorAll('.eq-gain-val');
-    const presetBtns = document.querySelectorAll('.eq-preset-btn');
-    const vuL = $('vuFillL');
-    const vuR = $('vuFillR');
-    const volKnob = $('volKnob');
+  const sliders = document.querySelectorAll('.eq-slider');
+  const gainLabels = document.querySelectorAll('.eq-gain-val');
+  const presetBtns = document.querySelectorAll('.eq-preset-btn');
+  const vuL = $('vuFillL');
+  const vuR = $('vuFillR');
+  const volKnob = $('volKnob');
+  const balKnob = $('balKnob');
 
-    sliders.forEach((slider, idx) => {
-      slider.addEventListener('input', () => {
-        const val = parseInt(slider.value, 10);
-        gainLabels[idx].textContent = (val > 0 ? '+' + val : val) + 'dB';
-      });
+  function updateEqGain(index, val) {
+    if (eqFilters[index]) {
+      eqFilters[index].gain.value = val;
+    }
+    gainLabels[index].textContent = (val > 0 ? '+' + val : val) + 'dB';
+  }
+
+  sliders.forEach((slider, idx) => {
+    slider.addEventListener('input', () => {
+      updateEqGain(idx, parseFloat(slider.value));
     });
+  });
 
-    presetBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        presetBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const p = presets[btn.dataset.preset];
-        if (p) {
-          sliders.forEach((slider, idx) => {
-            slider.value = p[idx];
-            gainLabels[idx].textContent = (p[idx] > 0 ? '+' + p[idx] : p[idx]) + 'dB';
-          });
-        }
-      });
-    });
-
-    setInterval(() => {
-      const vol = (parseInt(volKnob.value, 10) / 100) * (isPlaying ? 1 : 0);
-      if (vol > 0) {
-        const levelL = Math.min(100, Math.random() * 80 * vol + 20 * vol);
-        const levelR = Math.min(100, Math.random() * 80 * vol + 20 * vol);
-        if (vuL) vuL.style.height = levelL + '%';
-        if (vuR) vuR.style.height = levelR + '%';
-      } else {
-        if (vuL) vuL.style.height = '0%';
-        if (vuR) vuR.style.height = '0%';
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      presetBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const p = presets[btn.dataset.preset];
+      if (p) {
+        sliders.forEach((slider, idx) => {
+          slider.value = p[idx];
+          updateEqGain(idx, p[idx]);
+        });
       }
-    }, 100);
-  })();
+    });
+  });
 
-  // ---------- Y2K clock ----------
+  volKnob.addEventListener('input', () => {
+    if (masterGain && audioCtx) {
+      masterGain.gain.value = parseFloat(volKnob.value) / 100;
+    }
+  });
+
+  balKnob.addEventListener('input', () => {
+    if (pannerNode && audioCtx) {
+      pannerNode.pan.value = parseFloat(balKnob.value) / 100;
+    }
+  });
+
+  setInterval(() => {
+    const vol = (parseInt(volKnob.value, 10) / 100) * (isPlaying ? 1 : 0);
+    if (vol > 0) {
+      const levelL = Math.min(100, Math.random() * 80 * vol + 20 * vol);
+      const levelR = Math.min(100, Math.random() * 80 * vol + 20 * vol);
+      if (vuL) vuL.style.height = levelL + '%';
+      if (vuR) vuR.style.height = levelR + '%';
+    } else {
+      if (vuL) vuL.style.height = '0%';
+      if (vuR) vuR.style.height = '0%';
+    }
+  }, 100);
+
+  // ---------- Y2K Clock ----------
   const pad2 = n => (n < 10 ? '0' : '') + n;
   function updateY2KClock() {
     const diff = Date.now() - Date.UTC(2000, 0, 1);
@@ -590,7 +633,7 @@
     setTimeout(() => document.body.classList.remove('glitch-active'), 1500);
   });
 
-  // ---------- Matrix rain ----------
+  // ---------- Matrix Rain ----------
   (function initMatrix() {
     const canvas = $('matrixStandaloneCanvas'), win =$('winMatrixExplorer'), ctx = canvas.getContext('2d');
     const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%&*', fontSize = 11;
@@ -612,7 +655,7 @@
     }, 33);
   })();
 
-  // ---------- Audio ----------
+  // ---------- Audio & Media Engine ----------
   function formatTime(secs) {
     if (isNaN(secs) || secs < 0) return "00:00";
     return pad2(Math.floor(secs / 60)) + ':' + pad2(Math.floor(secs % 60));
@@ -640,17 +683,49 @@
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       masterGain = audioCtx.createGain();
+      pannerNode = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
       analyser = audioCtx.createAnalyser();
       analyser.fftSize = 64;
+
+      // Construct 7-Band Equalizer Nodes
+      eqFilters = EQ_FREQS.map((freq, i) => {
+        const filter = audioCtx.createBiquadFilter();
+        if (i === 0) filter.type = 'lowshelf';
+        else if (i === EQ_FREQS.length - 1) filter.type = 'highshelf';
+        else filter.type = 'peaking';
+
+        filter.frequency.value = freq;
+        filter.gain.value = parseFloat(sliders[i].value);
+        return filter;
+      });
+
+      // Chain Equalizer Filters together
+      for (let i = 0; i < eqFilters.length - 1; i++) {
+        eqFilters[i].connect(eqFilters[i + 1]);
+      }
+
+      masterGain.gain.value = parseFloat(volKnob.value) / 100;
+      if (pannerNode) pannerNode.pan.value = parseFloat(balKnob.value) / 100;
+
+      // Connect Chain: EQ Last Node -> Panner -> MasterGain -> Analyser -> Speakers
+      const lastEqNode = eqFilters[eqFilters.length - 1];
+      if (pannerNode) {
+        lastEqNode.connect(pannerNode);
+        pannerNode.connect(masterGain);
+      } else {
+        lastEqNode.connect(masterGain);
+      }
       masterGain.connect(analyser);
       analyser.connect(audioCtx.destination);
     }
+
     if (!audioSourceNode) {
       try {
         audioSourceNode = audioCtx.createMediaElementSource(htmlAudio);
-        audioSourceNode.connect(masterGain);
+        audioSourceNode.connect(eqFilters[0]);
       } catch (e) {}
     }
+
     if (audioCtx.state === 'suspended') audioCtx.resume();
   }
 
@@ -675,7 +750,7 @@
       osc.frequency.value = notes[Math.floor(Math.random() * notes.length)];
       gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
-      osc.connect(gain); gain.connect(masterGain);
+      osc.connect(gain); gain.connect(eqFilters[0]);
       osc.start(); osc.stop(audioCtx.currentTime + 0.25);
     }, 250);
   }
@@ -698,6 +773,16 @@
       loadedId = track.id;
       els.progressFill.style.width = '0%';
       els.currentTime.textContent = '00:00';
+
+      if (track.cover) {
+        els.vinylArt.src = track.cover;
+        els.vinylArt.classList.add('active');
+        els.vinylDefaultText.style.display = 'none';
+      } else {
+        els.vinylArt.classList.remove('active');
+        els.vinylDefaultText.style.display = 'block';
+      }
+
       if (track.url) {
         htmlAudio.src = track.url;
         htmlAudio.play().catch(() => {});
@@ -709,7 +794,7 @@
       isPlaying = true;
       masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
       masterGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
-      masterGain.gain.exponentialRampToValueAtTime(1.0, audioCtx.currentTime + 0.2);
+      masterGain.gain.exponentialRampToValueAtTime(parseFloat(volKnob.value) / 100, audioCtx.currentTime + 0.2);
       updateUI();
     }, 200);
   }
@@ -766,14 +851,23 @@
     }
   });
 
-  // ---------- UI ----------
+  // ---------- UI & Corner Mascot Updates ----------
   function updateUI() {
     const track = getCurrentTrack();
     els.statusBadge.textContent = isPlaying ? "PLAYING" : (loadedId ? "PAUSED" : "READY");
     els.playBtn.textContent = isPlaying ? "⏸" : "▶";
     els.repeatBadge.textContent = "REP: " + ["OFF", "ONE", "ALL"][repeatMode];
     els.repeatBtn.classList.toggle('active', repeatMode > 0);
-    els.lcdTicker.textContent = `*** ${loadedId ? 'NOW PLAYING' : 'SELECTED'}: ${track.name} — ${track.genre} *** ${track.lyrics || ''}`;
+    els.lcdTicker.textContent = `*** ${loadedId ? 'NOW PLAYING' : 'SELECTED'}: ${track.name} ${track.artist ? ' - ' + track.artist : ''} (${track.genre}) *** ${track.lyrics || ''}`;
+    
+    if (isPlaying) {
+      els.mascotSprite.classList.add('dancing');
+      els.mascotSpeech.textContent = "Jammin' to: " + track.name + "! 🕺🎵";
+    } else {
+      els.mascotSprite.classList.remove('dancing');
+      els.mascotSpeech.textContent = "Press Play to make me dance!";
+    }
+
     renderPlaylist();
     renderQueue();
   }
@@ -785,7 +879,7 @@
     meta.className = 'track-card-meta';
     const nm = document.createElement('div');
     nm.className = 'track-card-name';
-    nm.textContent = track.name;
+    nm.textContent = track.name + (track.artist ? ' - ' + track.artist : '');
     meta.appendChild(nm);
     card.appendChild(meta);
     if (withAdd) {
@@ -818,7 +912,7 @@
       els.queueList.appendChild(empty);
     }
     queue.forEach((track, i) => {
-      const card = makeCard({ name: '☰ ' + track.name }, false);
+      const card = makeCard({ name: '☰ ' + track.name, artist: track.artist }, false);
       card.title = 'Click to remove';
       card.addEventListener('click', () => { queue.splice(i, 1); renderQueue(); });
       els.queueList.appendChild(card);
@@ -849,11 +943,7 @@
   els.crtToggle.addEventListener('change', () => applyCrt(els.crtToggle.checked));
 
   $('exportBtn').addEventListener('click', () => {
-    const config = {
-      theme: els.themeSelect.value,
-      crt: els.crtToggle.checked,
-      repeatMode: repeatMode
-    };
+    const config = { theme: els.themeSelect.value, crt: els.crtToggle.checked, repeatMode: repeatMode };
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -874,13 +964,8 @@
           const config = JSON.parse(ev.target.result);
           if (config.theme) applyTheme(config.theme);
           if (typeof config.crt === 'boolean') applyCrt(config.crt);
-          if (typeof config.repeatMode === 'number') {
-            repeatMode = config.repeatMode;
-            updateUI();
-          }
-        } catch (err) {
-          alert('Invalid JSON settings file.');
-        }
+          if (typeof config.repeatMode === 'number') { repeatMode = config.repeatMode; updateUI(); }
+        } catch (err) { alert('Invalid JSON settings file.'); }
       };
       reader.readAsText(file);
     };
@@ -906,17 +991,49 @@
     sleepTick = setInterval(sleepBadge, 1000);
   });
 
-  // ---------- Files ----------
+  // ---------- File Handling with ID3 Tag Reader ----------
   $('uploadBtn').addEventListener('click', () => $('fileInput').click());$('fileInput').addEventListener('change', e => {
-    Array.from(e.target.files || []).forEach(file => {
-      playlist.push({
-        id: "loc_" + Date.now() + Math.random().toString(36).slice(2, 6),
-        name: file.name.replace(/\.[^/.]+$/, ""), genre: "Local File", type: "local",
-        url: URL.createObjectURL(file), lyrics: ""
-      });
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const trackId = "loc_" + Date.now() + Math.random().toString(36).slice(2, 6);
+      const trackObj = {
+        id: trackId,
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        artist: "",
+        genre: "Local MP3",
+        type: "local",
+        url: URL.createObjectURL(file),
+        cover: null,
+        lyrics: ""
+      };
+
+      playlist.push(trackObj);
+      renderPlaylist();
+
+      // Read ID3 Metadata
+      if (window.jsmediatags) {
+        window.jsmediatags.read(file, {
+          onSuccess: function(tag) {
+            const tags = tag.tags;
+            if (tags.title) trackObj.name = tags.title;
+            if (tags.artist) trackObj.artist = tags.artist;
+            if (tags.genre) trackObj.genre = tags.genre;
+
+            if (tags.picture) {
+              const data = tags.picture.data;
+              let base64String = "";
+              for (let i = 0; i < data.length; i++) {
+                base64String += String.fromCharCode(data[i]);
+              }
+              trackObj.cover = `data:${tags.picture.format};base64,${window.btoa(base64String)}`;
+            }
+            updateUI();
+          },
+          onError: function() { updateUI(); }
+        });
+      }
     });
     e.target.value = '';
-    renderPlaylist();
   });
 
   $('bgUploadBtn').addEventListener('click', () => $('bgInput').click());$('bgInput').addEventListener('change', e => {
@@ -925,7 +1042,7 @@
     e.target.value = '';
   });
 
-  // ---------- Animation loop ----------
+  // ---------- Animation Loop ----------
   const vctx = els.viz.getContext('2d');
   function animateFrame() {
     if (isPlaying) {
