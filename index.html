@@ -409,7 +409,7 @@
   </div>
   <div class="clock-container">
     <div class="clock-digits" id="clockDisplay">00d 00h 00m 00s</div>
-    <div class="clock-label">Time Since Y2K Bug Panic (Jan 1, 2000)</div>
+    <div class="clock-label">Time Since 2000s Bug Panic (Jan 1, 2000)</div>
     <button class="glitch-btn" id="triggerGlitchBtn">Simulate Glitch ⚡</button>
   </div>
 </div>
@@ -791,7 +791,7 @@
 
   $('triggerGlitchBtn').addEventListener('click', () => {
     document.body.classList.add('glitch-active');
-    setMascotReaction("Y2K BUG GLITCH DETECTED! 🚨💻");
+    setMascotReaction(" BUG GLITCH DETECTED! 🚨💻 ");
     setTimeout(() => document.body.classList.remove('glitch-active'), 1500);
   });
 
